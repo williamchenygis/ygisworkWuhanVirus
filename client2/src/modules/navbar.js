@@ -42,7 +42,9 @@ class _NavBar extends React.Component {
               </NavDropdown>
             </Nav>
             <Nav>
-              <Nav.Link href="#">login</Nav.Link>
+              <Nav.Link href="#" 
+                onClick={()=>this.props.onClick()}>{this.props.msg}
+              </Nav.Link>
             </Nav>
           </Navbar.Collapse>
         </Navbar>

@@ -1,4 +1,5 @@
-var getJSON = require('get-json');
+const getJSON = require('get-json');
+const fetch = require('node-fetch');
 
 //get administrative boundary data in geojson
 const getGeoData = (url) => {
@@ -19,6 +20,26 @@ const getGeoData = (url) => {
 	
 }
 
+const getUserData = (url) =>{
+	let getUserDataPromise = new Promise((resolve, reject) => {
+		fetch(url)
+	    .then(res => res.json())
+	    .then(json => resolve(json));
+	});
+
+	return getUserDataPromise;
+}
+
+const getGeoDataRequest = (url) => {
+	let getGeoDataPromise = new Promise((resolve, reject) => {
+		fetch(url)
+	    .then(res => res.json())
+	    .then(json => resolve(json));
+	});
+
+	return getGeoDataPromise;
+}
+
 //get daily update virus data
 const getDailyData = (url, date) => {
 	console.log("get daily data");
@@ -35,6 +56,23 @@ const getDailyData = (url, date) => {
 	// });
 
 	return getJSON(new_url);
+}
+
+const getDailyDataRequest = (url,date) => {
+
+	console.log("get daily data");
+
+	const dateStr=(date.getMonth()<9?"0":"")+(date.getMonth()+1)+"_"+date.getDate();
+
+	var new_url=url+""+dateStr+".json";
+
+	let getDailyDataPromise = new Promise((resolve, reject) => {
+		fetch(new_url)
+	    .then(res => res.json())
+	    .then(json => resolve(json));
+	});
+
+	return getDailyDataPromise;
 }
 
 const joinData = (geoData, dailyData) => {
@@ -56,7 +94,10 @@ const testFunc = (testVar) => {
 	return testVar;
 }
 
+exports.getUserData=getUserData;
 exports.getGeoData = getGeoData;
+exports.getGeoDataRequest=getGeoDataRequest;
 exports.getDailyData = getDailyData;
+exports.getDailyDataRequest = getDailyDataRequest;
 exports.testFunc=testFunc;
 exports.joinData=joinData;

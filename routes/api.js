@@ -11,4 +11,11 @@ router.get('/getUserInfo', function(req, res, next) {
   res.end(JSON.stringify(req.cookies));
 });
 
+router.get('/getUserInfo2', function(req, res, next) {
+  res.setHeader('Content-Type', 'application/json');
+  console.log(req.body);
+      //res.json({lel: req.user._id});
+  res.json({lel: req.user});
+});
+
 module.exports = router;

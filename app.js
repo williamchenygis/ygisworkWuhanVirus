@@ -18,6 +18,11 @@ var cors = require("cors");
 
 var app = express();
 
+app.all('/*', function(req, res, next) {
+    res.header("Access-Control-Allow-Origin", "*");
+    next();
+});
+
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'jade');
@@ -32,7 +37,7 @@ app.use(cookieSession({
 }));
 app.use(cookieParser());
 
-app.use(express.static(path.join(__dirname, '/client/build/')));
+app.use(express.static(path.join(__dirname, '/client2/dist/')));
 //app.use(express.static(path.join(__dirname, 'public')));
 
 // app.use(session({
@@ -44,6 +49,15 @@ app.use(express.static(path.join(__dirname, '/client/build/')));
 app.use(passport.initialize());
 //app.use(passport.session());
 
+passport.serializeUser(function(user, done) {
+  done(null, user);
+});
+
+passport.deserializeUser(function(id, done) {
+  // NOTE: second true param is making 'hack'
+  // so the session will be saved after a page refresh, but it will be destroyed after a server refresh
+  done(null, true);
+});
 
 app.use('/', indexRouter);
 app.use('/users', usersRouter);
@@ -51,9 +65,9 @@ app.use('/auth', auth);
 app.use('/api', api);
 
 // Handles any requests that don't match the ones above
-app.get('/page/*', (req,res) =>{
-    res.sendFile(path.join(__dirname+'/client/build/index.html'));
-});
+// app.get('/page/*', (req,res) =>{
+//     res.sendFile(path.join(__dirname+'/client2/dist/'));
+// });
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {

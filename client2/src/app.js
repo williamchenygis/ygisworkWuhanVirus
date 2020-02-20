@@ -6,13 +6,14 @@ import $ from 'jquery';
 //import Navbar from 'react-bootstrap/Navbar'
 import _NavBar from './modules/navbar';
 import d from './modules/data';
+import res from './res';
+
+const http = require('http');
 
 import "./style.css";
 
-mapboxgl.accessToken = 'pk.eyJ1IjoieWl5YW5nZ2lzIiwiYSI6ImEyM2M0YmE5MWNiMTFkOWViNDFmMjY2NzM2NmE4NmJjIn0.vtR53ah0_BF1iqMoOZWMrg';
+mapboxgl.accessToken = res.mapboxToken;
 
-const geodataUrl="./data/china-province.geojson";
-const dailydataUrl="./data/wuhan_virus_data/";
 
 // class _NavBar extends React.Component {
 
@@ -57,20 +58,46 @@ class Application extends React.Component {
 			_map:null,
 
 			//
+			userStatus:null,
 			username:null,
 			data:null
 		};
 
-		this.userLogin();
+		//this.userLogin();
+
 
 		this.map=null;
 		this.geodata=null;
 		this.dailydata=null;
+
+		const options = {
+		  hostname: "localhost",
+		  port: 3000,
+		  path: "/api/getUserInfo",
+		  method: 'GET'
+		}
+
+		const req = http.request(options, res => {
+		  console.log(`statusCode: ${res.statusCode}`)
+
+		  res.on('data', d => {
+		    console.log(d);
+		  })
+		})
+
+		req.on('error', error => {
+		  console.error(error)
+		})
+
+		req.end()
 	}
 
 	componentDidMount() {
 
 		var that=this;
+
+		//this.checkUserStatus();
+
 		const map = new mapboxgl.Map({
 			container: this.mapContainer,
 			style: 'mapbox://styles/mapbox/streets-v11',
@@ -83,7 +110,7 @@ class Application extends React.Component {
 		this.map=map;
 
 		map.on('load', function(){
-			that.loadData();
+			that.loadData(new Date());
 		});
 
 		//d.getDailyData(null);
@@ -91,53 +118,168 @@ class Application extends React.Component {
 		
 	}
 
-	userLogin(){
-		const that=this;
-		$.get( "http://localhost:3000/api/test", function( data ) {
-		  that.setState({data:data.msg});
+	checkUserStatus(){
+
+		var that=this;
+
+		// $.get(res.backUrl+"api/getUserInfo", function( data ) {
+		// 	if(data.username){
+		// 		that.setState({userStatus:true, username:data.username});
+		// 	}
+		// 	else{
+		// 		that.setState({userStatus:false, username:null});
+		// 	}
+		  
+		// });
+		d.getUserData(res.backUrl+"api/getUserInfo")
+		.then(function(userData){
+			console.log(userData);
+		})
+		.catch(function(error){
+			console.log(error);
 		});
 	}
 
-	loadData(){
+	userLogin(){
+		const that=this;
+		console.log("use google login as default");
+		// $.get(res.backUrl+"auth/google", function( data ) {
+		//   that.setState({data:data.msg});
+		// });
+
+		window.open(res.backUrl+"auth/google","_self");
+
+		//that.setState({userStatus:true, username:"test"});
+	}
+
+	loadData(date){
 		//var map=this.state._map;
 		var map=this.map;
 		var that = this;
-		map.addSource('china', {
-		  type: 'geojson',
-		  //data: './data/china-province.geojson'
-		  data: data
-		});	
-		map.addLayer({
-			'id': 'china',
-			'type': 'fill',
-			'source': 'china',
-			'layout': {},
-			'paint': {
-			'fill-color': '#088',
-			'fill-opacity': 0.8
-			}
-		});
-		//this.setState({_map:map});
 
-		// //load geo data
-		// d.getGeoData(geodataUrl).then((data) => {
-		// 	that.geodata=data;
-		// });
-		// //load daily data
-		// d.getGeoData(dailydataUrl, new Date()).then((data) => {
-		// 	that.dailydata=data;
-		// });
+		d.getGeoDataRequest("http://localhost:3000/data/china-province.geojson")
+		    .then(function(geoData){
+		   		d.getDailyDataRequest("http://localhost:3000/data/wuhan_virus_data/", new Date()).
+		    	then(function(dailyData){
+		    		var tempDailyData=JSON.parse(dailyData.data);
+					var tempGeoData=geoData.features;
+					//console.log(tempDailyData);
+					var newGeoData=d.joinData(tempGeoData,tempDailyData);
+					geoData.features=newGeoData;
 
-		this.map=map;
+					geoData.features.forEach(function(geo) {
+					    geo.properties.total=geo.data.total.confirm;
+					});
+
+					console.log(geoData);
+					
+					map.addSource('china', {
+					  type: 'geojson',
+					  //data: './data/china-province.geojson'
+					  data: geoData
+					});	
+					map.addLayer({
+						'id': 'china',
+						'type': 'fill',
+						'source': 'china',
+						'layout': {},
+						'paint': {
+							'fill-color': [
+						        'interpolate',
+								['linear'],
+								['get', 'total'],
+								0,
+								['to-color', '#00ff00'],
+								1000,
+								['to-color', '#ff0000']
+						    ],
+							'fill-opacity': 0.8
+						}
+					});
+
+					that.map=map;
+		    	})
+		    	.catch(function(error) {
+			      console.log(error);
+			    });
+		    	
+		    })
+		    .catch(function(error) {
+		      console.log(error);
+		    });
+
+		// d.getGeoData(res.backUrl+"data/china-province.geojson")
+	 //    .then(function(geoData){
+	 //    	d.getDailyData(res.backUrl+"data/wuhan_virus_data/", date).
+	 //    	then(function(dailyData){
+	 //    		var tempDailyData=JSON.parse(dailyData.data);
+		// 		var tempGeoData=geoData.features;
+		// 		//console.log(tempDailyData);
+		// 		var newGeoData=d.joinData(tempGeoData,tempDailyData);
+		// 		//console.log(newGeoData);
+		// 		assert.equal('data' in newGeoData[0], true);
+		// 		that.geodata=newGeoData;
+
+		// 		map.addSource('china', {
+		// 		  type: 'geojson',
+		// 		  //data: './data/china-province.geojson'
+		// 		  data: data
+		// 		});	
+		// 		map.addLayer({
+		// 			'id': 'china',
+		// 			'type': 'fill',
+		// 			'source': 'china',
+		// 			'layout': {},
+		// 			'paint': {
+		// 			'fill-color': '#088',
+		// 			'fill-opacity': 0.8
+		// 			}
+		// 		});
+		// 		//this.setState({_map:map});
+
+		// 		// //load geo data
+		// 		// d.getGeoData(geodataUrl).then((data) => {
+		// 		// 	that.geodata=data;
+		// 		// });
+		// 		// //load daily data
+		// 		// d.getGeoData(dailydataUrl, new Date()).then((data) => {
+		// 		// 	that.dailydata=data;
+		// 		// });
+
+		// 		that.map=map;
+
+	 //    		done();
+	 //    	})
+	 //    	.catch(function(error) {
+		//       console.log(error);
+		//     });
+	    	
+	 //    })
+	 //    .catch(function(error) {
+	 //      console.log(error);
+	 //    });
+
+		
 	}
 
 	render() {
 
 		const username=this.state.data;
 
+		var welcomeMsg=null;
+
+		console.log(this.state);
+
+		if(this.state.userStatus){
+			welcomeMsg="Welcome, "+this.state.username;
+		}
+		else{
+			welcomeMsg="login";
+		}
+
 		return (
 			<div>
-				<_NavBar/>
+				<_NavBar msg={welcomeMsg} onClick={() => this.userLogin()}/>
 				
 				<div ref={el => this.mapContainer = el}   className="mapContainer"/>
 			</div>

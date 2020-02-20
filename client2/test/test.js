@@ -86,6 +86,20 @@ describe('data module', function() {
 		    });
 		    
 		});
+
+		it('get geodata as geojson format using request', function(done) {
+		    d.getGeoDataRequest("http://localhost:3000/data/china-province.geojson")
+		    .then(function(data){
+		    	//console.log(data);
+		    	//myFirstPromise().then(function(data)){
+		    	assert.equal(data.type, "FeatureCollection");
+		    	done();
+		    })
+		    .catch(function(error) {
+		      console.log(error);
+		    });
+		    
+		});
 	});
 
 	describe('test data join',function(){

@@ -37,7 +37,7 @@ router.get('/google/callback',
         //     user: req.user.doc.name
         // });
 
-        res.redirect('/page/');
+        res.redirect('/');
     } else {
         res.cookie('token', '')
         res.json({
